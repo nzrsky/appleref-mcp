@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    env:
+      PYVER: ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set Python
+        run: uv python install "$PYVER"
+
+      - name: Sync dependencies
+        run: uv sync --python "$PYVER"
+
+      - name: Server import smoke
+        # Catches import / FastMCP construction errors without needing a docset.
+        # The Docset itself is opened lazily on the first tool call.
+        run: |
+          uv run --python "$PYVER" python -c "
+          from appleref_mcp.server import build_server
+          app = build_server()
+          tools = sorted(t.name for t in app._tool_manager.list_tools())
+          print('tools:', tools)
+          assert tools == ['get_apple_doc', 'list_frameworks', 'list_types', 'search_apple_docs'], tools
+          "
+
+      - name: Run tests
+        # Tests skip cleanly when the Apple_API_Reference.docset isn't available
+        # (which is always true on CI). Skips are reported, not errored.
+        run: uv run --python "$PYVER" pytest -v

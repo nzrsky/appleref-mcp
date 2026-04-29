@@ -25,10 +25,31 @@ bundle directly.
 
 ## Install
 
+Pick the option that fits your workflow.
+
+### Run straight from GitHub (no install)
+
 ```bash
-uv tool install --from . appleref-mcp        # from a checkout
-# or
-uv pip install -e .
+uvx --from git+https://github.com/nzrsky/appleref-mcp appleref-mcp
+```
+
+### Install as a uv tool (recommended)
+
+```bash
+uv tool install git+https://github.com/nzrsky/appleref-mcp
+appleref-mcp           # binary on your PATH
+```
+
+To upgrade later: `uv tool upgrade appleref-mcp`.
+
+### From a local checkout
+
+```bash
+git clone https://github.com/nzrsky/appleref-mcp.git
+cd appleref-mcp
+uv tool install --from . appleref-mcp
+# or, for hacking:
+uv sync && uv run appleref-mcp
 ```
 
 ## Configure docset location
@@ -40,22 +61,51 @@ The server looks for the docset in this order:
 3. `~/Library/Application Support/Dash/DocSets/Apple_API_Reference/Apple_API_Reference.docset`
 4. `~/Apple_API_Reference.docset`
 
-## Wire it up
+If you don't have Dash installed, copy any existing `Apple_API_Reference.docset`
+bundle to one of those paths or point `APPLEREF_DOCSET` at it.
 
-### Claude Code
+## Wire it up to Claude Code
+
+The fastest path uses `uvx` so nothing needs to be installed up front:
 
 ```bash
-claude mcp add appleref -- uv tool run appleref-mcp
+claude mcp add appleref -- uvx --from git+https://github.com/nzrsky/appleref-mcp appleref-mcp
 ```
 
-### Manual MCP config
+If your docset isn't in the default Dash location, pass `APPLEREF_DOCSET`:
+
+```bash
+claude mcp add appleref \
+    --env APPLEREF_DOCSET=/path/to/Apple_API_Reference.docset \
+    -- uvx --from git+https://github.com/nzrsky/appleref-mcp appleref-mcp
+```
+
+After adding, restart Claude Code and verify:
+
+```bash
+claude mcp list                    # should show 'appleref'
+# or, in a Claude Code session:
+/mcp                               # interactive view of connected servers
+```
+
+If you installed via `uv tool install`, swap the command for the bare binary:
+
+```bash
+claude mcp add appleref -- appleref-mcp
+```
+
+### Manual MCP config (other clients)
 
 ```json
 {
   "mcpServers": {
     "appleref": {
-      "command": "uv",
-      "args": ["tool", "run", "appleref-mcp"],
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/nzrsky/appleref-mcp",
+        "appleref-mcp"
+      ],
       "env": {
         "APPLEREF_DOCSET": "/path/to/Apple_API_Reference.docset"
       }
@@ -63,6 +113,20 @@ claude mcp add appleref -- uv tool run appleref-mcp
   }
 }
 ```
+
+### Quick smoke test
+
+Without a Claude client, you can drive the server directly over stdio:
+
+```bash
+printf '%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}' \
+  '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+  | appleref-mcp
+```
+
+You should see two JSON-RPC responses listing the four tools.
 
 ## Tools
 
