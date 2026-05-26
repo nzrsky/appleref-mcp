@@ -60,9 +60,19 @@ The server looks for the docset in this order:
 2. `./Apple_API_Reference.docset`
 3. `~/Library/Application Support/Dash/DocSets/Apple_API_Reference/Apple_API_Reference.docset`
 4. `~/Apple_API_Reference.docset`
+5. `~/.cache/appleref-mcp/Apple_API_Reference.docset` (auto-download cache)
 
-If you don't have Dash installed, copy any existing `Apple_API_Reference.docset`
-bundle to one of those paths or point `APPLEREF_DOCSET` at it.
+If none of those exist, the server downloads the latest packed docset from
+this repo's GitHub releases into the cache directory on first run, then
+operates fully offline from then on.
+
+| env var | default | purpose |
+| --- | --- | --- |
+| `APPLEREF_DOCSET` | unset | explicit docset path (highest priority) |
+| `APPLEREF_AUTO_DOWNLOAD` | `1` | set to `0` to disable the GitHub fallback |
+| `APPLEREF_CACHE_DIR` | `~/.cache/appleref-mcp` | where the auto-downloaded docset lives |
+| `APPLEREF_RELEASE_REPO` | `nzrsky/appleref-mcp` | source repo for the release asset |
+| `APPLEREF_RELEASE_TAG` | latest `docset-*` | pin to a specific release |
 
 ## Wire it up to Claude Code
 
@@ -171,6 +181,26 @@ uv run pytest -v
 
 Tests run end-to-end against a real docset and skip cleanly if none is
 available.
+
+## Publishing a new docset release
+
+Maintainer-only. Requires a local Dash with the Apple API Reference
+docset downloaded.
+
+```bash
+# 1. pack — writes dist/appleref-docset-<tag>.tar.xz + .sha256 + .notes.md
+./tools/pack-docset.sh
+
+# 2. publish — prints the exact gh command at the end of step 1; e.g.
+gh release create docset-24500-79 \
+  --title 'Apple docset 24500-79' \
+  --notes-file dist/appleref-docset-24500-79.notes.md \
+  dist/appleref-docset-24500-79.tar.xz \
+  dist/appleref-docset-24500-79.tar.xz.sha256
+```
+
+The MCP server picks up the new release automatically on its next
+first-run install (or when the cache directory is cleared).
 
 ## License
 

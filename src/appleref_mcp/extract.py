@@ -51,7 +51,13 @@ def find_docset() -> Path:
       2. ./Apple_API_Reference.docset (cwd)
       3. ~/Library/Application Support/Dash/DocSets/Apple_API_Reference/Apple_API_Reference.docset
       4. ~/Apple_API_Reference.docset
+      5. ~/.cache/appleref-mcp/Apple_API_Reference.docset (auto-download target)
+
+    On a full miss, the latest packed docset is fetched from GitHub releases
+    into the cache dir (5). Disable with ``APPLEREF_AUTO_DOWNLOAD=0``.
     """
+    from . import fetch  # local import keeps test discovery cheap
+
     candidates: list[Path] = []
     env = os.environ.get("APPLEREF_DOCSET")
     if env:
@@ -63,16 +69,24 @@ def find_docset() -> Path:
         Path.cwd() / "Apple_API_Reference.docset",
         Path.home() / "Library/Application Support/Dash/DocSets/Apple_API_Reference/Apple_API_Reference.docset",
         Path.home() / "Apple_API_Reference.docset",
+        fetch.cached_docset_path(),
     ]
 
     for c in candidates:
         if (c / "Contents/Resources/optimizedIndex.dsidx").is_file():
             return c
 
+    downloaded = fetch.try_ensure_docset()
+    if downloaded is not None and (downloaded / "Contents/Resources/optimizedIndex.dsidx").is_file():
+        return downloaded
+
     msg = (
         "Could not find Apple_API_Reference.docset.\n"
         "Set APPLEREF_DOCSET to the .docset directory, or place it at one of:\n"
         + "\n".join(f"  - {c}" for c in candidates)
+        + "\n\nAuto-download from GitHub releases is "
+        + ("enabled but failed (see log above)." if fetch.auto_download_enabled()
+           else "disabled (APPLEREF_AUTO_DOWNLOAD=0).")
     )
     raise DocsetNotFound(msg)
 

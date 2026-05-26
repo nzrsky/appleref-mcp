@@ -1,6 +1,6 @@
 [project]
 name = "appleref-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Offline MCP server for Apple Developer Documentation, reading directly from a Dash-format Apple_API_Reference.docset"
 authors = [
     { name = "Alexey Nazarov", email = "nazarov@ptr.vc" }
