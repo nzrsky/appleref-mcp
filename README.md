@@ -15,13 +15,17 @@ bundle directly.
 ## Requirements
 
 - Python 3.11+
-- An `Apple_API_Reference.docset` directory. The easiest way to get one is to
-  install [Dash](https://kapeli.com/dash) and download the *Apple API Reference*
-  docset there. After download the bundle lives at:
+- An `Apple_API_Reference.docset` directory. By default the server downloads
+  a packed copy (~350 MB compressed, ~1.4 GB on disk) from this repo's
+  GitHub releases on first run — no Dash needed.
+
+  If you'd rather supply your own, install [Dash](https://kapeli.com/dash)
+  and download the *Apple API Reference* docset; the bundle lives at:
   ```
   ~/Library/Application Support/Dash/DocSets/Apple_API_Reference/Apple_API_Reference.docset
   ```
-  You can copy it anywhere; the server doesn't need Dash running.
+  The server uses it automatically from that path, or from anywhere you
+  point `APPLEREF_DOCSET` at. Dash doesn't need to be running.
 
 ## Install
 
